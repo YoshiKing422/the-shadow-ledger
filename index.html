@@ -1,59 +1,688 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Short Story</title>
-    <link rel="stylesheet" href="style.css">
+    <title>The Shadow Ledger — Yash Soni</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        deepVoid: '#030712',
+                        navyMidnight: '#060913',
+                        navyDark: '#0b172a',
+                        navyCard: '#0f1c3f',
+                        electricBlue: '#38bdf8',
+                        accentBlue: '#3b82f6',
+                        glowBlue: '#60a5fa',
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-base: #030712;
+            --bg-surface: #0b172a;
+            --bg-card: rgba(15, 28, 63, 0.65);
+            --border-glow: rgba(56, 189, 248, 0.25);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-glow: #38bdf8;
+        }
+
+        body.theme-navy {
+            --bg-base: #070d19;
+            --bg-surface: #0f1c35;
+            --bg-card: rgba(20, 35, 68, 0.7);
+            --border-glow: rgba(59, 130, 246, 0.3);
+            --text-main: #f1f5f9;
+            --text-muted: #cbd5e1;
+            --accent-glow: #60a5fa;
+        }
+
+        body.theme-mono {
+            --bg-base: #000000;
+            --bg-surface: #0a0a0a;
+            --bg-card: rgba(20, 20, 20, 0.85);
+            --border-glow: rgba(255, 255, 255, 0.2);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --accent-glow: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        .glass-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glow);
+        }
+
+        .story-text p.drop-cap::first-letter {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            float: left;
+            line-height: 0.8;
+            padding-right: 0.85rem;
+            padding-top: 0.25rem;
+            color: var(--accent-glow);
+            font-weight: 700;
+            text-shadow: 0 0 25px rgba(56, 189, 248, 0.5);
+        }
+
+        .book-perspective {
+            perspective: 1400px;
+        }
+        .book-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.6s ease;
+            box-shadow: -20px 25px 40px rgba(0,0,0,0.85), 0 0 35px rgba(56, 189, 248, 0.2);
+        }
+        .book-3d:hover {
+            transform: rotateY(-15deg) rotateX(8deg) scale(1.03);
+            box-shadow: -30px 40px 60px rgba(0,0,0,0.95), 0 0 55px rgba(56, 189, 248, 0.4);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030712;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+
+        @keyframes subtleGlow {
+            0%, 100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        .animate-glow {
+            animation: subtleGlow 5s infinite ease-in-out;
+        }
+    </style>
 </head>
-<body>
+<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-electricBlue/30 selection:text-white">
 
-    <!-- Taskbar Navigation -->
-    <nav class="taskbar">   
-        <ul class="nav-links">
-            <li><a href="#story">Story</a></li>
-            <li><a href="#process">Process</a></li>
-        </ul>
-    </nav>
+    <!-- Atmospheric Fog/Mist Particle Canvas -->
+    <canvas id="mistCanvas" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
 
-    <!-- Header Content -->
-    <header class="story-header">
-        <h1>The Shadow Ledger</h1>
-        <h2 class="author">By Yash Soni</h2>
+    <!-- Header Navigation & Reading Progress -->
+    <header class="fixed top-0 left-0 w-full z-50 transition-all duration-300">
+        <div class="w-full bg-slate-950/80 h-1">
+            <div id="progressBar" class="h-full bg-gradient-to-r from-blue-600 via-electricBlue to-cyan-300 w-0 transition-all duration-150"></div>
+        </div>
+
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-3">
+            <div class="glass-panel rounded-2xl px-5 py-3.5 flex items-center justify-between shadow-2xl">
+                
+                <a href="#hero" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-slate-900 border border-electricBlue/40 flex items-center justify-center text-white font-mono font-bold text-sm shadow-lg group-hover:scale-105 transition-all">
+                        SL
+                    </div>
+                    <div>
+                        <span class="font-serif font-bold text-sm sm:text-base tracking-wider text-white group-hover:text-electricBlue transition-colors block">THE SHADOW LEDGER</span>
+                        <span class="text-[10px] font-mono text-electricBlue tracking-widest uppercase block">BY YASH SONI</span>
+                    </div>
+                </a>
+
+                <div class="hidden md:flex items-center gap-8 font-sans text-xs tracking-widest uppercase font-medium text-slate-300">
+                    <a href="#story" class="hover:text-electricBlue transition-colors py-1">Story</a>
+                    <a href="#ledger" class="hover:text-electricBlue transition-colors py-1">Ledger Archive</a>
+                    <a href="#process" class="hover:text-electricBlue transition-colors py-1">Process</a>
+                </div>
+
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="hidden sm:flex items-center bg-slate-950/80 border border-electricBlue/20 rounded-xl p-1">
+                        <button onclick="setTheme('obsidian')" id="themeObsidianBtn" class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-white bg-blue-600/40 transition-all">OBSIDIAN</button>
+                        <button onclick="setTheme('navy')" id="themeNavyBtn" class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-slate-400 hover:text-white transition-all">NAVY</button>
+                        <button onclick="setTheme('mono')" id="themeMonoBtn" class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-slate-400 hover:text-white transition-all">MONO</button>
+                    </div>
+
+                    <button id="ttsBtn" onclick="toggleTTS()" class="px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white shadow-lg transition-all text-xs flex items-center gap-2 font-mono">
+                        <i id="ttsIcon" class="fa-solid fa-play text-xs"></i>
+                        <span class="hidden sm:inline text-[10px] tracking-wider">AUDIO NARRATION</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
     </header>
 
-    <!-- Book Cover Image Section -->
-    <div class="image-container">
-        <!-- Note: Ensure your file extension matches your actual image (e.g., .jpg, .png) -->
-        <img src="images/bookcover.jpg" alt="Book Cover" class="book-cover">
-    </div>
+    <main class="flex-grow z-10 relative">
 
-    <!-- Main Content Area -->
-    <main class="content-container"> 
-        <!-- Section 1: The Story -->
-        <section id="story">
-            <h2>The Story</h2>
-            <p>The iron bells of Oakhaven once signaled order and safety, but fall brought a quiet, subtle terror. It began with empty chairs at morning tables. A blacksmith’s apron left over an anvil, still warm to the touch. A baker’s daughter left behind footprints that abruptly vanished mid-stride on the cobblestone path, as if the earth had swallowed her next step. There were no bloodstains, no shattered glass, no muffled cries. The missing simply vanished into the mist, leaving behind only the sickening chill of a vacuum.</p>
-            
-            <p>For generations, the town operated under the comforting illusion that human cooperation could solve any problem. To restore a sense of control, the high council erected huge blackboards in the town square. They logged every missing soul with absolute precision, tracking age, lineage, and lunar phases. Order and mathematics, they said, were an unbreakable shield against the dark.</p>
-            
-            <p>Yet the numbers refused to show a pattern. With every fresh tally, the scribe broke the chalk in half, his fingers trembling as white dust drifted like ash over the ledger. Day after day, night after night, the digits climbed. Ten. Thirty. Eighty. A growing tide that shattered the town’s naive trust in their leaders.</p>
-            
-            <p>Heavy timber slammed against doorframes and iron deadbolts turned in panic as neighbors barricaded their homes and shouted accusations across the alleys. When reason shattered into chaos, desperate crowds rushed the council hall, setting its heavy oak doors ablaze and scattering burning embers across the square. Riots surged through the streets beneath the choking black smoke. Yet through the deafening roar of fire and frantic shouts, the unseen force moved silently past barred windows and locked doors, taking soul after soul until the town stood completely empty.</p>
-            
-            <p>When the smoke cleared, a suffocating silence settled over Oakhaven. No shouts remained, only the crunch of frozen gravel beneath heavy boots walking through the wreckage. The illusion of safety was gone. The streets lay empty, covered with dry leaves that no hand remained to sweep.</p>
-            
-            <p>On the final morning, beneath a sun pale as salt, an old man with raw knuckles and a torn coat dragged his feet onto the square. The blackboard lay smashed to splinters. In its place, fluttering against the stone fountain, rested a blank scroll bound in silver thread. He knelt down upon the hard frost, pressing a calloused thumb against the unwritten parchment.</p>
+        <!-- 1. HERO SECTION -->
+        <section id="hero" class="min-h-screen pt-32 pb-20 flex items-center justify-center relative overflow-hidden">
+            <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-electricBlue/10 rounded-full blur-[150px] pointer-events-none animate-glow"></div>
+
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+                    
+                    <div class="lg:col-span-7 flex flex-col items-start space-y-6 text-left">
+                        <div class="inline-flex items-center gap-3 px-4 py-1.5 rounded-full glass-panel text-xs font-mono text-electricBlue border border-electricBlue/30 shadow-lg">
+                            <span class="w-2 h-2 rounded-full bg-electricBlue animate-ping"></span>
+                            <span>SHORT STORY CHRONICLE</span>
+                            <span class="text-slate-600">•</span>
+                            <span class="text-slate-300">YASH SONI</span>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h1 class="font-serif text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.05] text-white">
+                                THE SHADOW <br/>
+                                <span class="bg-gradient-to-r from-white via-electricBlue to-cyan-300 bg-clip-text text-transparent">LEDGER</span>
+                            </h1>
+                            <p class="font-serif italic text-xl sm:text-2xl text-slate-300 max-w-xl">
+                                "The iron bells of Oakhaven once signaled order and safety, but fall brought a quiet, subtle terror."
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3 pt-2 font-mono text-xs text-slate-300">
+                            <div class="px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-ghost text-electricBlue"></i>
+                                <span>Dark Mystery</span>
+                            </div>
+                            <div class="px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-clock text-electricBlue"></i>
+                                <span>~3 min read</span>
+                            </div>
+                            <div class="px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-location-dot text-electricBlue"></i>
+                                <span>Oakhaven</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-4 pt-4">
+                            <a href="#story" class="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-sans font-semibold text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-blue-600/25 border border-blue-400/40 transition-all transform hover:-translate-y-0.5">
+                                Read The Story <i class="fa-solid fa-arrow-down ml-2 text-xs"></i>
+                            </a>
+                            <a href="#ledger" class="px-8 py-4 rounded-xl glass-panel text-slate-200 hover:text-white font-sans font-semibold text-xs sm:text-sm tracking-wider uppercase border border-slate-700 hover:border-electricBlue/40 transition-all">
+                                Open Ledger Archive <i class="fa-solid fa-book-skull ml-2 text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-5 flex justify-center items-center">
+                        <div class="book-perspective py-6">
+                            <div class="book-3d relative w-64 sm:w-80 h-96 sm:h-[460px] rounded-r-2xl rounded-l-md bg-gradient-to-br from-slate-950 via-navyMidnight to-black border-r-2 border-electricBlue/40 p-8 flex flex-col justify-between overflow-hidden shadow-2xl cursor-pointer">
+                                <div class="absolute inset-0 bg-[linear-gradient(to_right,#38bdf810_1px,transparent_1px),linear-gradient(to_bottom,#38bdf810_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+                                <div class="absolute top-0 right-0 w-48 h-48 bg-electricBlue/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                                <div class="relative z-10 flex justify-between items-start">
+                                    <span class="font-mono text-[10px] tracking-widest text-electricBlue uppercase">VOL. 01 • ARCHIVE</span>
+                                    <i class="fa-solid fa-feather text-electricBlue/70"></i>
+                                </div>
+
+                                <div class="relative z-10 text-center my-auto space-y-3">
+                                    <div class="w-16 h-16 mx-auto mb-2 rounded-2xl bg-blue-600/20 border border-electricBlue/40 flex items-center justify-center text-electricBlue shadow-lg shadow-blue-600/30">
+                                        <i class="fa-solid fa-book-open text-2xl"></i>
+                                    </div>
+                                    <h2 class="font-serif text-2xl sm:text-3xl font-bold text-white tracking-wide">The Shadow Ledger</h2>
+                                    <p class="font-mono text-xs text-electricBlue tracking-widest uppercase">BY YASH SONI</p>
+                                </div>
+
+                                <div class="relative z-10 pt-4 border-t border-slate-800/80 flex justify-between items-center text-[11px] font-mono text-slate-400">
+                                    <span>OAKHAVEN RECORDS</span>
+                                    <span class="text-electricBlue">2026</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         </section>
 
-        <!-- Section 2: The Process -->
-        <section id="process">
-            <h2>The Process</h2>
-            <p>Process Here</p>
+        <!-- 2. MAIN STORY SECTION -->
+        <section id="story" class="py-20 max-w-4xl mx-auto px-4 sm:px-6 relative">
+            
+            <div class="glass-panel rounded-2xl p-4 mb-12 flex flex-wrap items-center justify-between gap-4 sticky top-20 z-40 shadow-2xl">
+                <div class="flex items-center gap-3">
+                    <span class="w-2.5 h-2.5 rounded-full bg-electricBlue animate-pulse"></span>
+                    <span class="font-mono text-xs uppercase tracking-widest text-slate-200 font-bold">Reader Suite</span>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center bg-slate-950/80 border border-electricBlue/20 rounded-xl p-1 gap-1">
+                        <button onclick="adjustFontSize(-1)" class="w-8 h-8 rounded-lg text-xs font-mono text-slate-300 hover:text-white hover:bg-blue-600/30 transition-all flex items-center justify-center">A-</button>
+                        <span id="fontSizeIndicator" class="text-xs font-mono px-2 text-electricBlue">100%</span>
+                        <button onclick="adjustFontSize(1)" class="w-8 h-8 rounded-lg text-xs font-mono text-slate-300 hover:text-white hover:bg-blue-600/30 transition-all flex items-center justify-center">A+</button>
+                    </div>
+
+                    <select id="chapterSelect" onchange="jumpToChapter(this.value)" class="bg-slate-950/90 border border-electricBlue/30 text-slate-200 text-xs font-mono rounded-xl px-3 py-2 outline-none focus:border-electricBlue cursor-pointer">
+                        <option value="ch1">I. The Vanishing</option>
+                        <option value="ch2">II. The Tally</option>
+                        <option value="ch3">III. The Chaos</option>
+                        <option value="ch4">IV. The Blank Parchment</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="storyContentContainer" class="glass-panel rounded-3xl p-6 sm:p-12 md:p-16 shadow-2xl space-y-12 story-text transition-all duration-300">
+
+                <div class="text-center pb-8 border-b border-electricBlue/20 space-y-3">
+                    <span class="font-mono text-xs tracking-[0.3em] text-electricBlue uppercase">Complete Short Story</span>
+                    <h2 class="font-serif text-3xl sm:text-5xl font-bold text-white">The Shadow Ledger</h2>
+                    <p class="font-serif italic text-slate-400 text-lg">By Yash Soni</p>
+                </div>
+
+                <div id="ch1" class="space-y-6 pt-4">
+                    <div class="flex items-center gap-4 mb-4">
+                        <span class="h-[1px] flex-grow bg-electricBlue/20"></span>
+                        <h3 class="font-mono text-xs tracking-[0.25em] text-electricBlue uppercase font-semibold">I. The Vanishing</h3>
+                        <span class="h-[1px] flex-grow bg-electricBlue/20"></span>
+                    </div>
+
+                    <p class="drop-cap text-base sm:text-lg leading-relaxed text-slate-200 font-light">
+                        The iron bells of Oakhaven once signaled order and safety, but fall brought a quiet, subtle terror. It began with empty chairs at morning tables. A blacksmith’s apron left over an anvil, still warm to the touch. A baker’s daughter left behind footprints that abruptly vanished mid-stride on the cobblestone path, as if the earth had swallowed her next step. There were no bloodstains, no shattered glass, no muffled cries. The missing simply vanished into the mist, leaving behind only the sickening chill of a vacuum.
+                    </p>
+                </div>
+
+                <div id="ch2" class="space-y-6 pt-8">
+                    <div class="flex items-center gap-4 mb-4">
+                        <span class="h-[1px] flex-grow bg-electricBlue/20"></span>
+                        <h3 class="font-mono text-xs tracking-[0.25em] text-electricBlue uppercase font-semibold">II. The Tally</h3>
+                        <span class="h-[1px] flex-grow bg-electricBlue/20"></span>
+                    </div>
+
+                    <p class="text-base sm:text-lg leading-relaxed text-slate-200 font-light">
+                        For generations, the town operated under the comforting illusion that human cooperation could solve any problem. To restore a sense of control, the high council erected huge blackboards in the town square. They logged every missing soul with absolute precision, tracking age, lineage, and lunar phases. Order and mathematics, they said, were an unbreakable shield against the dark.
+                    </p>
+
+                    <p class="text-base sm:text-lg leading-relaxed text-slate-200 font-light">
+                        Yet the numbers refused to show a pattern. With every fresh tally, the scribe broke the chalk in half, his fingers trembling as white dust drifted like ash over the ledger. Day after day, night after night, the digits climbed. Ten. Thirty. Eighty. A growing tide that shattered the town’s naive trust in their leaders.
+                    </p>
+                </div>
+
+                <div id="ch3" class="space-y-6 pt-8">
+                    <div class="flex items-center gap-4 mb-4">
+                        <span class="h-[1px] flex-grow bg-electricBlue/20"></span>
+                        <h3 class="font-mono text-xs tracking-[0.25em] text-electricBlue uppercase font-semibold">III. The Chaos</h3>
+                        <span class="h-[1px] flex-grow bg-electricBlue/20"></span>
+                    </div>
+
+                    <p class="text-base sm:text-lg leading-relaxed text-slate-200 font-light">
+                        Heavy timber slammed against doorframes and iron deadbolts turned in panic as neighbors barricaded their homes and shouted accusations across the alleys. When reason shattered into chaos, desperate crowds rushed the council hall, setting its heavy oak doors ablaze and scattering burning embers across the square. Riots surged through the streets beneath the choking black smoke. Yet through the deafening roar of fire and frantic shouts, the unseen force moved silently past barred windows and locked doors, taking soul after soul until the town stood completely empty.
+                    </p>
+
+                    <p class="text-base sm:text-lg leading-relaxed text-slate-200 font-light">
+                        When the smoke cleared, a suffocating silence settled over Oakhaven. No shouts remained, only the crunch of frozen gravel beneath heavy boots walking through the wreckage. The illusion of safety was gone. The streets lay empty, covered with dry leaves that no hand remained to sweep.
+                    </p>
+                </div>
+
+                <div id="ch4" class="space-y-6 pt-8">
+                    <div class="flex items-center gap-4 mb-4">
+                        <span class="h-[1px] flex-grow bg-electricBlue/20"></span>
+                        <h3 class="font-mono text-xs tracking-[0.25em] text-electricBlue uppercase font-semibold">IV. The Blank Parchment</h3>
+                        <span class="h-[1px] flex-grow bg-electricBlue/20"></span>
+                    </div>
+
+                    <p class="text-base sm:text-lg leading-relaxed text-slate-200 font-light">
+                        On the final morning, beneath a sun pale as salt, an old man with raw knuckles and a torn coat dragged his feet onto the square. The blackboard lay smashed to splinters. In its place, fluttering against the stone fountain, rested a blank scroll bound in silver thread. He knelt down upon the hard frost, pressing a calloused thumb against the unwritten parchment.
+                    </p>
+                </div>
+
+            </div>
         </section>
+
+        <!-- 3. INTERACTIVE LEDGER ARCHIVE (#ledger) -->
+        <section id="ledger" class="py-20 max-w-6xl mx-auto px-4 sm:px-6 relative">
+            <div class="text-center space-y-3 mb-12">
+                <span class="font-mono text-xs tracking-[0.3em] text-electricBlue uppercase">High Council Database</span>
+                <h2 class="font-serif text-3xl sm:text-4xl font-bold text-white">The Oakhaven Ledger Archive</h2>
+                <p class="text-slate-400 font-sans max-w-xl mx-auto text-sm">
+                    Inspect the precise logs maintained by the council before the blackboards were shattered to splinters.
+                </p>
+            </div>
+
+            <!-- Ledger Filter & Search Toolbar -->
+            <div class="glass-panel rounded-2xl p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="ledgerSearch" onkeyup="filterLedger()" placeholder="Search resident or occupation..." class="w-full bg-slate-950/80 border border-electricBlue/20 rounded-xl pl-11 pr-4 py-2.5 text-xs font-mono text-white placeholder-slate-500 outline-none focus:border-electricBlue">
+                </div>
+                <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                    <button onclick="filterStatus('all')" id="filterAll" class="px-4 py-2 rounded-xl text-xs font-mono font-bold bg-blue-600 text-white shadow-lg transition-all">ALL RECORDS</button>
+                    <button onclick="filterStatus('Vanished')" id="filterVanished" class="px-4 py-2 rounded-xl text-xs font-mono font-bold bg-slate-950/80 text-slate-400 hover:text-white border border-electricBlue/20 transition-all">VANISHED</button>
+                    <button onclick="filterStatus('Unresolved')" id="filterUnresolved" class="px-4 py-2 rounded-xl text-xs font-mono font-bold bg-slate-950/80 text-slate-400 hover:text-white border border-electricBlue/20 transition-all">UNRESOLVED</button>
+                </div>
+            </div>
+
+            <!-- Ledger Table -->
+            <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-electricBlue/20">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-electricBlue/20 bg-slate-950/60 font-mono text-[11px] uppercase tracking-wider text-electricBlue">
+                                <th class="py-4 px-6">Resident Name</th>
+                                <th class="py-4 px-6">Occupation</th>
+                                <th class="py-4 px-6">Lunar Phase</th>
+                                <th class="py-4 px-6">Date Logged</th>
+                                <th class="py-4 px-6">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerTableBody" class="divide-y divide-slate-800/60 font-sans text-xs sm:text-sm text-slate-300">
+                            <tr class="hover:bg-blue-600/10 transition-colors">
+                                <td class="py-4 px-6 font-semibold text-white">Silas Vance</td>
+                                <td class="py-4 px-6 text-slate-400">Blacksmith</td>
+                                <td class="py-4 px-6 font-mono text-xs text-electricBlue">Waxing Crescent</td>
+                                <td class="py-4 px-6 font-mono text-xs">Oct 12</td>
+                                <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full text-[10px] font-mono bg-red-500/20 text-red-400 border border-red-500/30">Vanished</span></td>
+                            </tr>
+                            <tr class="hover:bg-blue-600/10 transition-colors">
+                                <td class="py-4 px-6 font-semibold text-white">Eliza Thorne</td>
+                                <td class="py-4 px-6 text-slate-400">Baker's Daughter</td>
+                                <td class="py-4 px-6 font-mono text-xs text-electricBlue">First Quarter</td>
+                                <td class="py-4 px-6 font-mono text-xs">Oct 14</td>
+                                <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full text-[10px] font-mono bg-red-500/20 text-red-400 border border-red-500/30">Vanished</span></td>
+                            </tr>
+                            <tr class="hover:bg-blue-600/10 transition-colors">
+                                <td class="py-4 px-6 font-semibold text-white">Master Aldous</td>
+                                <td class="py-4 px-6 text-slate-400">Council Scribe</td>
+                                <td class="py-4 px-6 font-mono text-xs text-electricBlue">Full Moon</td>
+                                <td class="py-4 px-6 font-mono text-xs">Oct 19</td>
+                                <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30">Unresolved</span></td>
+                            </tr>
+                            <tr class="hover:bg-blue-600/10 transition-colors">
+                                <td class="py-4 px-6 font-semibold text-white">Margaret Finch</td>
+                                <td class="py-4 px-6 text-slate-400">Town Weaver</td>
+                                <td class="py-4 px-6 font-mono text-xs text-electricBlue">Waning Gibbous</td>
+                                <td class="py-4 px-6 font-mono text-xs">Oct 22</td>
+                                <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full text-[10px] font-mono bg-red-500/20 text-red-400 border border-red-500/30">Vanished</span></td>
+                            </tr>
+                            <tr class="hover:bg-blue-600/10 transition-colors">
+                                <td class="py-4 px-6 font-semibold text-white">Thomas Miller</td>
+                                <td class="py-4 px-6 text-slate-400">Gatekeeper</td>
+                                <td class="py-4 px-6 font-mono text-xs text-electricBlue">Third Quarter</td>
+                                <td class="py-4 px-6 font-mono text-xs">Oct 25</td>
+                                <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30">Unresolved</span></td>
+                            </tr>
+                            <tr class="hover:bg-blue-600/10 transition-colors">
+                                <td class="py-4 px-6 font-semibold text-white">Elena Green</td>
+                                <td class="py-4 px-6 text-slate-400">Village Herbalist</td>
+                                <td class="py-4 px-6 font-mono text-xs text-electricBlue">New Moon</td>
+                                <td class="py-4 px-6 font-mono text-xs">Oct 28</td>
+                                <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-full text-[10px] font-mono bg-red-500/20 text-red-400 border border-red-500/30">Vanished</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. WRITING PROCESS TIMELINE (#process) -->
+        <section id="process" class="py-20 max-w-5xl mx-auto px-4 sm:px-6 relative">
+            <div class="text-center space-y-3 mb-16">
+                <span class="font-mono text-xs tracking-[0.3em] text-electricBlue uppercase">Behind The Scenes</span>
+                <h2 class="font-serif text-3xl sm:text-4xl font-bold text-white">The Writer's Process</h2>
+                <p class="text-slate-400 font-sans max-w-xl mx-auto text-sm">
+                    Reflections on balancing atmospheric tension, flash fiction breakthroughs, and overcoming writer’s block by Yash Soni.
+                </p>
+            </div>
+
+            <!-- Intro Quote Banner -->
+            <div class="glass-panel rounded-2xl p-6 sm:p-8 mb-12 border border-electricBlue/30 shadow-xl text-center">
+                <p class="font-serif italic text-base sm:text-lg text-slate-200">
+                    "Writing The Shadow Ledger was a journey in balancing atmospheric tension with a tight word count while discovering my voice in flash fiction."
+                </p>
+                <span class="font-mono text-xs text-electricBlue uppercase tracking-widest mt-3 block">— Yash Soni</span>
+            </div>
+
+            <!-- Process Grid Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- Glow 1 -->
+                <div class="glass-panel rounded-3xl p-8 shadow-xl flex flex-col justify-between border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">GLOW 01</span>
+                            <i class="fa-solid fa-lightbulb text-emerald-400"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-bold text-white">Show, Don’t Tell</h3>
+                        <p class="text-sm text-slate-300 leading-relaxed font-light">
+                            One of the biggest breakthroughs in my writing process was learning how to replace directly stated emotion words with sensory details. In my initial drafts, I relied on telling the reader about feelings like helplessness, paranoia, and dismay. During revision, I pushed myself to show those emotions through physical actions, such as scribes snapping chalk in half and heavy deadbolts slamming shut before sunset. This shift allowed the reader to experience the townspeople’s panic directly rather than just reading about it.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Glow 2 -->
+                <div class="glass-panel rounded-3xl p-8 shadow-xl flex flex-col justify-between border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">GLOW 02</span>
+                            <i class="fa-solid fa-users text-emerald-400"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-bold text-white">Peer Editing</h3>
+                        <p class="text-sm text-slate-300 leading-relaxed font-light">
+                            A major highlight of the process was receiving peer feedback from my peer editor, who pushed me to create a stronger plot and build better narrative momentum. My editor pointed out areas where the action stalled and helped me focus on driving the story forward. Their suggestions encouraged me to transform passive summaries into active scenes that carried urgency and tension. Incorporating that advice gave the climax a much clearer arc and ensured the whole story kept moving forward.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Grow 1 -->
+                <div class="glass-panel rounded-3xl p-8 shadow-xl flex flex-col justify-between border border-blue-500/20 hover:border-blue-500/40 transition-all">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-blue-500/20 text-electricBlue border border-blue-500/30">GROW 01</span>
+                            <i class="fa-solid fa-chart-line text-electricBlue"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-bold text-white">Frustrations with Plot Momentum</h3>
+                        <p class="text-sm text-slate-300 leading-relaxed font-light">
+                            My main frustration during the drafting process was creating a powerful climax without making the narrative feel rushed or overcrowded. In early versions of the fourth paragraph, the riot scene either felt too much like a summary or became too graphic and ruined the suspense. It took multiple attempts to balance the speed of the mob with the quiet dread of the invisible force. I also struggled to convey the chaotic collapse of the town without directly stating it.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Grow 2 -->
+                <div class="glass-panel rounded-3xl p-8 shadow-xl flex flex-col justify-between border border-blue-500/20 hover:border-blue-500/40 transition-all">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-blue-500/20 text-electricBlue border border-blue-500/30">GROW 02</span>
+                            <i class="fa-solid fa-pen-nib text-electricBlue"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-bold text-white">Writer’s Block on the Ending</h3>
+                        <p class="text-sm text-slate-300 leading-relaxed font-light">
+                            Another major hurdle was overcoming writer’s block when trying to craft a resolution for the final survivor. Because the tale uses third person omniscient narration, the original ending felt distant and clunky. I spent a long time looking for the right words to describe the last person without making the story sound like a prologue or a historical report. In future projects, I will focus on grounding broad plots in specific human actions much earlier in the drafting phase.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
     </main>
 
-    <!-- Connect JavaScript File -->
-    <script src="script.js"></script>
+    <!-- Footer -->
+    <footer class="py-12 border-t border-slate-800/80 bg-slate-950/60 z-10 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-600/20 border border-electricBlue/30 flex items-center justify-center text-electricBlue font-mono font-bold text-xs">
+                    SL
+                </div>
+                <span class="font-serif text-sm text-white font-semibold">The Shadow Ledger — Yash Soni</span>
+            </div>
+            <p class="font-mono text-xs text-slate-500">
+                © 2026 Oakhaven Archives. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Handling Interactivity -->
+    <script>
+        function setTheme(theme) {
+            document.body.classList.remove('theme-navy', 'theme-mono');
+            document.getElementById('themeObsidianBtn').className = "px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-slate-400 hover:text-white transition-all";
+            document.getElementById('themeNavyBtn').className = "px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-slate-400 hover:text-white transition-all";
+            document.getElementById('themeMonoBtn').className = "px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-slate-400 hover:text-white transition-all";
+
+            if (theme === 'navy') {
+                document.body.classList.add('theme-navy');
+                document.getElementById('themeNavyBtn').className = "px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-white bg-blue-600/40 transition-all";
+            } else if (theme === 'mono') {
+                document.body.classList.add('theme-mono');
+                document.getElementById('themeMonoBtn').className = "px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-white bg-slate-700 transition-all";
+            } else {
+                document.getElementById('themeObsidianBtn').className = "px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-white bg-blue-600/40 transition-all";
+            }
+        }
+
+        let currentScale = 100;
+        function adjustFontSize(direction) {
+            currentScale += direction * 10;
+            if (currentScale < 80) currentScale = 80;
+            if (currentScale > 140) currentScale = 140;
+            
+            document.getElementById('fontSizeIndicator').innerText = currentScale + '%';
+            const paragraphs = document.querySelectorAll('.story-text p');
+            paragraphs.forEach(p => {
+                p.style.fontSize = (currentScale / 100) * 1.125 + 'rem';
+            });
+        }
+
+        function jumpToChapter(chapterId) {
+            const el = document.getElementById(chapterId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        window.addEventListener('scroll', () => {
+            const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById('progressBar').style.width = scrolled + '%';
+        });
+
+        // Ledger Search and Filter Logic
+        let activeStatusFilter = 'all';
+        function filterStatus(status) {
+            activeStatusFilter = status;
+            document.getElementById('filterAll').className = "px-4 py-2 rounded-xl text-xs font-mono font-bold bg-slate-950/80 text-slate-400 hover:text-white border border-electricBlue/20 transition-all";
+            document.getElementById('filterVanished').className = "px-4 py-2 rounded-xl text-xs font-mono font-bold bg-slate-950/80 text-slate-400 hover:text-white border border-electricBlue/20 transition-all";
+            document.getElementById('filterUnresolved').className = "px-4 py-2 rounded-xl text-xs font-mono font-bold bg-slate-950/80 text-slate-400 hover:text-white border border-electricBlue/20 transition-all";
+
+            if(status === 'all') document.getElementById('filterAll').className = "px-4 py-2 rounded-xl text-xs font-mono font-bold bg-blue-600 text-white shadow-lg transition-all";
+            if(status === 'Vanished') document.getElementById('filterVanished').className = "px-4 py-2 rounded-xl text-xs font-mono font-bold bg-blue-600 text-white shadow-lg transition-all";
+            if(status === 'Unresolved') document.getElementById('filterUnresolved').className = "px-4 py-2 rounded-xl text-xs font-mono font-bold bg-blue-600 text-white shadow-lg transition-all";
+
+            filterLedger();
+        }
+
+        function filterLedger() {
+            const query = document.getElementById('ledgerSearch').value.toLowerCase();
+            const rows = document.getElementById('ledgerTableBody').getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const name = rows[i].getElementsByTagName('td')[0].innerText.toLowerCase();
+                const occupation = rows[i].getElementsByTagName('td')[1].innerText.toLowerCase();
+                const statusBadge = rows[i].getElementsByTagName('td')[4].innerText;
+
+                const matchesQuery = name.includes(query) || occupation.includes(query);
+                const matchesStatus = activeStatusFilter === 'all' || statusBadge.includes(activeStatusFilter);
+
+                if (matchesQuery && matchesStatus) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+
+        let synth = window.speechSynthesis;
+        let isSpeaking = false;
+        function toggleTTS() {
+            if (!synth) {
+                alert('Text-to-speech is not supported in your browser.');
+                return;
+            }
+
+            const ttsIcon = document.getElementById('ttsIcon');
+            if (isSpeaking) {
+                synth.cancel();
+                isSpeaking = false;
+                ttsIcon.className = 'fa-solid fa-play text-xs';
+            } else {
+                const storyText = document.getElementById('storyContentContainer').innerText;
+                let utterance = new SpeechSynthesisUtterance(storyText);
+                utterance.rate = 0.95;
+                utterance.onend = () => {
+                    isSpeaking = false;
+                    ttsIcon.className = 'fa-solid fa-play text-xs';
+                };
+                synth.speak(utterance);
+                isSpeaking = true;
+                ttsIcon.className = 'fa-solid fa-pause text-xs';
+            }
+        }
+
+        const canvas = document.getElementById('mistCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        for (let i = 0; i < 40; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 80 + 40,
+                speedX: (Math.random() - 0.5) * 0.3,
+                speedY: (Math.random() - 0.5) * 0.2,
+                alpha: Math.random() * 0.15 + 0.05
+            });
+        }
+
+        function animateMist() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+
+                if (p.x < -100) p.x = canvas.width + 100;
+                if (p.x > canvas.width + 100) p.x = -100;
+                if (p.y < -100) p.y = canvas.height + 100;
+                if (p.y > canvas.height + 100) p.y = -100;
+
+                ctx.beginPath();
+                let gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+                gradient.addColorStop(0, `rgba(56, 189, 248, ${p.alpha})`);
+                gradient.addColorStop(1, 'rgba(3, 7, 18, 0)');
+                ctx.fillStyle = gradient;
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            requestAnimationFrame(animateMist);
+        }
+        animateMist();
+    </script>
 </body>
 </html>
